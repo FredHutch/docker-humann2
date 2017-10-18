@@ -226,7 +226,7 @@ def read_humann2_output_files(output_folder):
             msg = "Multiple *_genefamily.tsv files"
             assert "gene_families" not in out, msg
             out["gene_families"] = read_tsv(os.path.join(output_folder, file),
-                                            header=["gene_families", "RPK"])
+                                            header=["gene_family", "RPK"])
         elif file.endswith("_pathabundance.tsv"):
             # This is the pathway abundance file
             msg = "Multiple *_pathabundance.tsv files"
