@@ -3,7 +3,7 @@ MAINTAINER sminot@fredhutch.org
 
 # Install prerequisites
 RUN apt update && \
-	apt-get install -y build-essential wget python python-pip unzip python-matplotlib && \
+	apt-get install -y build-essential wget python python-pip unzip python-matplotlib language-pack-en && \
 	pip install humann2==0.11.1 boto3==1.4.7 awscli argparse \
 				numpy==1.9.0 scipy==0.14.0
 
