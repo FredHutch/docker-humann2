@@ -354,3 +354,6 @@ if __name__ == "__main__":
     # Stop logging
     logging.info("Done")
     logging.shutdown()
+
+    # Remove the log file
+    os.remove(log_fp)
