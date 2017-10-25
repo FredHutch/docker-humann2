@@ -19,5 +19,8 @@ RUN humann2_test --run-functional-tests-tools
 RUN mkdir /share
 WORKDIR /share
 
+# Set the default langage to C
+ENV LC_ALL C
+
 # Add the run script to the PATH
 # ADD run.py /usr/bin/

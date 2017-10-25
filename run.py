@@ -161,12 +161,13 @@ def control_file_endings(input_file):
     return input_file
 
 
-def run(input_str,           # ID for single sample to process
-        db_fp,               # Local path to DB
-        db_url,              # URL of ref DB, used for logging
-        output_folder,       # Place to put results
-        temp_folder,         # Temporary folder
-        threads):            # Number of threads
+def run(input_str,            # ID for single sample to process
+        db_fp,                # Local path to DB
+        db_url,               # URL of ref DB, used for logging
+        metaphlan_db_prefix,  # Relative path to the MetaPhlAn database
+        output_folder,        # Place to put results
+        temp_folder,          # Temporary folder
+        threads):             # Number of threads
     """Run HUMAnN2 on a single sample and return the results."""
 
     # Use the read prefix to name the output and temporary files
@@ -197,10 +198,13 @@ def run(input_str,           # ID for single sample to process
     input_file = control_file_endings(input_file)
 
     # Run HUMAnN2
+    mpa_fp = os.path.join(temp_folder, metaphlan_db_prefix)
     run_cmds(["humann2", "--input", input_file, "--output", temp_folder,
               "--nucleotide-database", os.path.join(db_fp, "chocophlan"),
               "--protein-database", os.path.join(db_fp, "uniref"),
-              "--threads", str(threads)])
+              "--threads", str(threads),
+              "--metaphlan-options", 
+              "'--bowtie2db {}' --mpa_pkl {}.pkl".format(mpa_fp, mpa_fp)])
 
     # Collect the output
     out = read_humann2_output_files(temp_folder)
@@ -289,6 +293,10 @@ if __name__ == "__main__":
                         type=str,
                         help="""Folder containing reference database.
                                 (Supported: s3://, ftp://, or local path).""")
+    parser.add_argument("--metaphlan-db-prefix",
+                        type=str,
+                        default="metaphlan2/db_v20/mpa_v20_m200",
+                        help="""Relative path to the metaphlan database.""")
     parser.add_argument("--output-folder",
                         type=str,
                         help="""Folder to place results.
@@ -340,6 +348,7 @@ if __name__ == "__main__":
         run(input_str,                     # ID for single sample to process
             db_fp,                         # Local path to DB
             args.ref_db,                   # URL of ref DB, used for logging
+            args.metaphlan_db_prefix,       # Rel path to MetaPhlAn database
             args.output_folder,            # Place to put results
             threads=args.threads,          # Number of threads
             temp_folder=temp_folder)       # Temporary folder
