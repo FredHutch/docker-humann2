@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/local/bin/python
 """Analyze a set of samples with HUMAnN2."""
 
 import os
@@ -11,7 +11,7 @@ import argparse
 import subprocess
 
 
-def run_cmds(commands):
+def run_cmds(commands, retry=0):
     """Run commands and write out the log, combining STDOUT & STDERR."""
     logging.info("Commands:")
     logging.info(' '.join(commands))
@@ -30,15 +30,30 @@ def run_cmds(commands):
             logging.info(line)
 
     # Check the exit code
-    assert exitcode == 0, "Exit code {}".format(exitcode)
+    if exitcode != 0 and retry > 0:
+        msg = "Exit code {}, retrying {} more times".format(exitcode, retry)
+        logging.info(msg)
+        run_cmds(commands, retry=retry - 1)
+    else:
+        assert exitcode == 0, "Exit code {}".format(exitcode)
 
 
 def get_reads_from_url(input_str, temp_folder):
     """Get a set of reads from a URL."""
-    logging.info("Getting reads from {}".format(input_str))
-    error_msg = "{} must start with s3://, sra://, or ftp://".format(input_str)
-    assert input_str.startswith(('s3://', 'sra://', 'ftp://')), error_msg
+    logging.info("Using reads from {}".format(input_str))
 
+    # If it doesn't start with s3://, sra://, or ftp://, it's a local path
+    error_msg = "{} must start with s3://, sra://, or ftp://".format(input_str)
+    if input_str.startswith(('s3://', 'sra://', 'ftp://')) is False:
+        logging.info("Path doesn't start with s3://, sra://, or ftp://")
+        logging.info("Path is assumed to be local file")
+
+        # Check to see if the file exists
+        logging.info("Checking to make sure the local file exists")
+        assert os.path.exists(input_str)
+        return input_str
+
+    # Otherwise, treat it as a file to be downloaded
     filename = input_str.split('/')[-1]
     local_path = os.path.join(temp_folder, filename)
 
@@ -49,7 +64,7 @@ def get_reads_from_url(input_str, temp_folder):
     if input_str.startswith('s3://'):
         logging.info("Getting reads from S3")
         run_cmds(['aws', 's3', 'cp', '--quiet', '--sse', 'AES256',
-                  input_str, temp_folder])
+                  input_str, temp_folder + '/'])
         return local_path
 
     # Get files from an FTP server
@@ -65,7 +80,8 @@ def get_reads_from_url(input_str, temp_folder):
         local_path = os.path.join(temp_folder, accession + ".fastq")
         # Download from NCBI
         run_cmds(["prefetch",
-                  accession])
+                  accession],
+                 retry=2)  # Try this up to a total of 3 times
         run_cmds(["fastq-dump",
                   "--skip-technical",
                   "--readids",
@@ -197,14 +213,33 @@ def run(input_str,            # ID for single sample to process
     # If the file ends with some non-standard file endings, correct them
     input_file = control_file_endings(input_file)
 
+    # Location of MetaPhlAn2 database
+    mpa_db_fp = os.path.join(db_fp, metaphlan_db_prefix)
+    # Location to write MetaPhlAn2 output
+    mpa_out = os.path.join(temp_folder, "mpa.out")
+    # Run MetaPhlAn2
+    logging.info("Running MetaPhlAn2")
+    run_cmds(["metaphlan2.py",
+              "--input_type", "fastq",           # Input file type
+              "--bowtie2db", mpa_db_fp,          # Bowtie2 database
+              "--mpa_pkl", mpa_db_fp + ".pkl",   # Database metadata
+              input_file,                        # Input file
+              mpa_out])                          # Output file
+    logging.info("Done")
+
+    logging.info("Running HUMAnN2")
+    # Folders within the HUMAnN2 database folder
+    nuc_db = os.path.join(db_fp, "chocophlan")
+    prot_db = os.path.join(db_fp, "uniref")
     # Run HUMAnN2
-    mpa_fp = os.path.join(temp_folder, metaphlan_db_prefix)
-    run_cmds(["humann2", "--input", input_file, "--output", temp_folder,
-              "--nucleotide-database", os.path.join(db_fp, "chocophlan"),
-              "--protein-database", os.path.join(db_fp, "uniref"),
-              "--threads", str(threads),
-              "--metaphlan-options", 
-              "'--bowtie2db {}' --mpa_pkl {}.pkl".format(mpa_fp, mpa_fp)])
+    run_cmds(["humann2",
+              "--input", input_file,             # Input file
+              "--output", temp_folder,           # Output folder
+              "--nucleotide-database", nuc_db,   # Chocophlan database
+              "--protein-database", prot_db,     # UniRef database
+              "--threads", str(threads),         # Multithreading
+              "--taxonomic-profile", mpa_out])   # MetaPhlAn2 output
+    logging.info("Done")
 
     # Collect the output
     out = read_humann2_output_files(temp_folder)

@@ -23,4 +23,4 @@ WORKDIR /share
 ENV LC_ALL C
 
 # Add the run script to the PATH
-# ADD run.py /usr/bin/
+ADD run.py /usr/local/bin/
