@@ -79,9 +79,6 @@ def get_reads_from_url(input_str, temp_folder):
         logging.info("Getting reads from SRA: " + accession)
         local_path = os.path.join(temp_folder, accession + ".fastq")
         # Download from NCBI
-        run_cmds(["prefetch",
-                  accession],
-                 retry=2)  # Try this up to a total of 3 times
         run_cmds(["fastq-dump",
                   "--skip-technical",
                   "--readids",
@@ -91,7 +88,7 @@ def get_reads_from_url(input_str, temp_folder):
                   "--clip",
                   "--outdir",
                   temp_folder,
-                  accession])
+                  accession], retry=1)  # Retry once on failure
 
         # Rename the file (which automatically has '_pass' included)
         run_cmds(["mv",
