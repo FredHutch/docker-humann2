@@ -277,30 +277,34 @@ def run(input_str,            # ID for single sample to process
 
 def read_humann2_output_files(output_folder):
     """Look in a particular output folder and return the set of results."""
-    out = {}
+    out = {"results": {}}
 
     for file in os.listdir(output_folder):
         if file.endswith("_genefamilies.tsv"):
             # This is the gene family abundance file
             msg = "Multiple *_genefamily.tsv files"
-            assert "gene_families" not in out, msg
-            out["gene_families"] = read_tsv(os.path.join(output_folder, file),
-                                            header=["gene_family", "RPK"])
+            assert "gene_families" not in out["results"], msg
+            dat = read_tsv(os.path.join(output_folder, file),
+                           header=["gene_family", "RPK"])
+            out["results"]["gene_families"] = dat
         elif file.endswith("_pathabundance.tsv"):
             # This is the pathway abundance file
             msg = "Multiple *_pathabundance.tsv files"
-            assert "pathway_abund" not in out, msg
-            out["pathway_abund"] = read_tsv(os.path.join(output_folder, file),
-                                            header=["pathway", "abund"])
+            assert "pathway_abund" not in out["results"], msg
+            dat = read_tsv(os.path.join(output_folder, file),
+                           header=["pathway", "abund"])
+            out["results"]["pathway_abund"] = dat
         elif file.endswith("_pathcoverage.tsv"):
             # This is the gene family abundance file
-            assert "pathway_cov" not in out, "Multiple *pathcoverage.tsv files"
-            out["pathway_cov"] = read_tsv(os.path.join(output_folder, file),
-                                          header=["pathway", "cov"])
+            msg = "Multiple *pathcoverage.tsv files"
+            assert "pathway_cov" not in out["results"], msg
+            dat = read_tsv(os.path.join(output_folder, file),
+                           header=["pathway", "cov"])
+            out["results"]["pathway_cov"] = dat
 
     # Make sure that all of the outputs were found
     for k in ["gene_families", "pathway_abund", "pathway_cov"]:
-        assert k in out
+        assert k in out["results"]
 
     return out
 
