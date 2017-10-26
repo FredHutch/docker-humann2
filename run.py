@@ -32,6 +32,7 @@ def get_sra(accession, temp_folder):
         url = "{}/{}".format(url, folder2)
     # Add the accession to the URL
     url = "{}/{}/{}".format(url, accession, accession)
+    logging.info("Base info for downloading from ENA: " + url)
     # There are three possible file endings
     file_endings = ["_1.fastq.gz", "_2.fastq.gz", ".fastq.gz"]
     # Try to download each file
@@ -40,15 +41,22 @@ def get_sra(accession, temp_folder):
     # Make sure that at least one of them downloaded
     assert any([os.path.exists("{}/{}{}".format(temp_folder, accession, end))
                 for end in file_endings])
+
     # Combine them all into a single file
-    run_cmds(["gunzip", "-c", "{}/{}*fastq.gz".format(temp_folder, accession),
-              ">", local_path])
+    logging.info("Combining into a single FASTQ file")
+    with open(local_path, "wt") as fo:
+        cmd = "gunzip -c {}/{}*fastq.gz".format(temp_folder, accession)
+        gunzip = subprocess.Popen(cmd, shell=True, stdout=fo)
+        gunzip.wait()
+
     # Clean up the temporary files
+    logging.info("Cleaning up temporary files")
     for end in file_endings:
         fp = "{}/{}{}".format(temp_folder, accession, end)
         if os.path.exists(fp):
             os.unlink(fp)
     # Return the path to the file
+    logging.info("Done fetching " + accession)
     return local_path
 
 
@@ -263,6 +271,8 @@ def run(input_str,            # ID for single sample to process
 
     # Collect the output
     out = read_humann2_output_files(temp_folder)
+    # Get the MetaPhlAn2 output as well
+    out["metaphlan2"] = read_tsv(mpa_out, header=["taxa", "percent"])
 
     # Add the runtime parameters
     out["parameters"] = {"db": db_url, "input": input_str, "threads": threads}
