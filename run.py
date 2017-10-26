@@ -37,7 +37,9 @@ def get_sra(accession, temp_folder):
     file_endings = ["_1.fastq.gz", "_2.fastq.gz", ".fastq.gz"]
     # Try to download each file
     for end in file_endings:
-        run_cmds(["wget", "-P", temp_folder, url + end], catchExcept=True)
+        run_cmds(["curl",
+                  "-o", os.path.join(temp_folder, accession + end),
+                  url + end], catchExcept=True)
     # Make sure that at least one of them downloaded
     assert any([os.path.exists("{}/{}{}".format(temp_folder, accession, end))
                 for end in file_endings])
