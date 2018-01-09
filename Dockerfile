@@ -2,7 +2,7 @@
 FROM quay.io/biocontainers/humann2:0.11.1--py27_1
 
 # Install some prerequisites
-RUN pip install boto3==1.4.7 awscli argparse
+RUN pip install boto3==1.4.7 awscli==1.11.146 argparse
 
 # Install the SRA toolkit
 RUN cd /usr/local/bin && \
