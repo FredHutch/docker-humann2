@@ -58,14 +58,12 @@ def get_sra(accession, temp_folder):
                 os.unlink(fp)
     else:
         logging.info("No files found on ENA, trying SRA")
-        local_sra_path = os.path.join(temp_folder, accession + ".sra")
         run_cmds([
-            "curl", "-o",
-            local_sra_path,
-            sra_url(accession)])
-        run_cmds([
-            "fastq-dump", "--split-files", "--outdir", temp_folder, local_sra_path
-        ])
+            "fastq-dump",
+            "--split-files",
+            "--outdir",
+            temp_folder, accession])
+
         # Combine any multiple files that were found
         with open(local_path + ".temp", "wt") as fo:
             cmd = "cat {}/{}*fastq".format(temp_folder, accession)
@@ -78,9 +76,6 @@ def get_sra(accession, temp_folder):
         # Check to see if the file was downloaded
         msg = "File could not be downloaded from SRA: {}".format(accession)
         assert os.path.exists(local_path), msg
-
-        # Remove the temporary SRA file
-        run_cmds(["rm", local_sra_path])
 
     # Return the path to the file
     logging.info("Done fetching " + accession)
