@@ -244,6 +244,7 @@ def control_file_endings(input_file):
 
 
 def run(input_str,            # ID for single sample to process
+        read_prefix,          # Name of the sample
         db_fp,                # Local path to DB
         db_url,               # URL of ref DB, used for logging
         metaphlan_db_prefix,  # Relative path to the MetaPhlAn database
@@ -251,9 +252,6 @@ def run(input_str,            # ID for single sample to process
         temp_folder,          # Temporary folder
         threads):             # Number of threads
     """Run HUMAnN2 on a single sample and return the results."""
-
-    # Use the read prefix to name the output and temporary files
-    read_prefix = input_str.split('/')[-1]
 
     # Check to see if the output already exists, if so, skip this sample
     output_fp = output_folder.rstrip('/') + '/' + read_prefix + '.json.gz'
@@ -396,6 +394,9 @@ if __name__ == "__main__":
                         type=str,
                         help="""Location for input file(s). Comma-separated.
                                 (Supported: sra://, s3://, or ftp://).""")
+    parser.add_argument("--sample-name",
+                        type=str,
+                        help="""Prefix used for the output files.""")
     parser.add_argument("--ref-db",
                         type=str,
                         help="""Folder containing reference database.
@@ -445,22 +446,23 @@ if __name__ == "__main__":
 
     logging.info("Threads: {}".format(args.threads))
 
-    # Align each of the inputs and calculate the overall abundance
-    for input_str in args.input.split(','):
-        # Make a new temp folder for this set of results
-        temp_folder = os.path.join(args.temp_folder, str(uuid.uuid4()))
-        os.mkdir(temp_folder)
-        logging.info("Processing input argument: " + input_str)
-        # Run HUMAnN2
-        run(input_str,                     # ID for single sample to process
-            db_fp,                         # Local path to DB
-            args.ref_db,                   # URL of ref DB, used for logging
-            args.metaphlan_db_prefix,       # Rel path to MetaPhlAn database
-            args.output_folder,            # Place to put results
-            threads=args.threads,          # Number of threads
-            temp_folder=temp_folder)       # Temporary folder
-        # Delete the temporary folder
-        shutil.rmtree(temp_folder)
+    # Align the input and calculate the overall abundance
+
+    # Make a new temp folder for this analysis
+    temp_folder = os.path.join(args.temp_folder, str(uuid.uuid4()))
+    os.mkdir(temp_folder)
+    logging.info("Processing input argument: " + args.input)
+    # Run HUMAnN2
+    run(args.input,                    # ID for single sample to process
+        args.sample_name,              # Name of the sample
+        db_fp,                         # Local path to DB
+        args.ref_db,                   # URL of ref DB, used for logging
+        args.metaphlan_db_prefix,      # Rel path to MetaPhlAn database
+        args.output_folder,            # Place to put results
+        threads=args.threads,          # Number of threads
+        temp_folder=temp_folder)       # Temporary folder
+    # Delete the temporary folder
+    shutil.rmtree(temp_folder)
 
     # Delete the reference database
     if delete_db_when_finished:
