@@ -3,7 +3,7 @@ FROM quay.io/biocontainers/humann2:0.11.1--py27_1
 
 # Install some prerequisites
 # Add the bucket command wrapper, used to run code via sciluigi
-RUN pip install boto3==1.4.7 awscli==1.11.146 argparse bucket_command_wrapper==0.2.0 
+RUN pip install boto3==1.4.7 awscli==1.11.146 argparse bucket_command_wrapper==0.3.0 
 
 # Install the SRA toolkit
 RUN cd /usr/local/bin && \
