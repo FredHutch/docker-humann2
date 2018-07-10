@@ -209,23 +209,23 @@ def get_reference_database(ref_db, temp_folder):
         return ref_db, delete_db_when_finished
 
 
-def return_results(out, read_prefix, output_folder, temp_folder):
+def return_results(out, output_fp, temp_folder):
     """Write out the final results as a JSON object in the output folder."""
     # Make a temporary file
-    temp_fp = os.path.join(temp_folder, read_prefix + '.json')
+    temp_fp = os.path.join(temp_folder, 'temp.json')
     with open(temp_fp, 'wt') as fo:
         json.dump(out, fo)
     # Compress the output
     run_cmds(['gzip', temp_fp])
     temp_fp = temp_fp + '.gz'
 
-    if output_folder.startswith('s3://'):
+    if output_fp.startswith('s3://'):
         # Copy to S3
         run_cmds(['aws', 's3', 'cp', '--quiet', '--sse', 'AES256',
-                  temp_fp, output_folder])
+                  temp_fp, output_fp])
     else:
         # Copy to local folder
-        run_cmds(['mv', temp_fp, output_folder])
+        run_cmds(['mv', temp_fp, output_fp])
 
 
 def control_file_endings(input_file):
@@ -248,13 +248,12 @@ def run(input_str,            # ID for single sample to process
         db_fp,                # Local path to DB
         db_url,               # URL of ref DB, used for logging
         metaphlan_db_prefix,  # Relative path to the MetaPhlAn database
-        output_folder,        # Place to put results
+        output_fp,            # Place to put results
         temp_folder,          # Temporary folder
         threads):             # Number of threads
     """Run HUMAnN2 on a single sample and return the results."""
 
     # Check to see if the output already exists, if so, skip this sample
-    output_fp = output_folder.rstrip('/') + '/' + read_prefix + '.json.gz'
     if output_fp.startswith('s3://'):
         # Check S3
         logging.info("Making sure that the output path doesn't already exist")
@@ -318,7 +317,7 @@ def run(input_str,            # ID for single sample to process
     out["logs"] = open(log_fp, 'rt').readlines()
 
     # Write out the final results as a JSON object to the output folder
-    return_results(out, read_prefix, output_folder, temp_folder)
+    return_results(out, output_fp, temp_folder)
 
 
 def read_humann2_output_files(output_folder):
@@ -405,9 +404,9 @@ if __name__ == "__main__":
                         type=str,
                         default="metaphlan2/db_v20/mpa_v20_m200",
                         help="""Relative path to the metaphlan database.""")
-    parser.add_argument("--output-folder",
+    parser.add_argument("--output-fp",
                         type=str,
-                        help="""Folder to place results.
+                        help="""Path to place results (must end .json.gz).
                                 (Supported: s3://, or local path).""")
     parser.add_argument("--temp-folder",
                         type=str,
@@ -444,6 +443,9 @@ if __name__ == "__main__":
     assert os.path.exists(os.path.join(db_fp, "chocophlan"))
     assert os.path.exists(os.path.join(db_fp, "uniref"))
 
+    # Make sure that the output path ends with .json.gz
+    assert args.output_fp.endswith(".json.gz"), args.output_fp
+
     logging.info("Threads: {}".format(args.threads))
 
     # Align the input and calculate the overall abundance
@@ -458,7 +460,7 @@ if __name__ == "__main__":
         db_fp,                         # Local path to DB
         args.ref_db,                   # URL of ref DB, used for logging
         args.metaphlan_db_prefix,      # Rel path to MetaPhlAn database
-        args.output_folder,            # Place to put results
+        args.output_fp,                # Place to put results
         threads=args.threads,          # Number of threads
         temp_folder=temp_folder)       # Temporary folder
     # Delete the temporary folder
