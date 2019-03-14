@@ -13,6 +13,12 @@ RUN cd /usr/local/bin && \
 	ln -s /usr/local/bin/sratoolkit.2.8.2-ubuntu64/bin/* /usr/local/bin/ && \
 	rm sratoolkit.2.8.2-ubuntu64.tar
 
+# Download the database
+RUN mkdir /usr/local/humann2 && \
+	humann2_databases --download chocophlan full /usr/local/humann2/chocophlan && \
+	humann2_databases --download uniref uniref90_ec_filtered_diamond /usr/local/humann2/uniref90_ec_filtered_diamond && \
+	humann2_databases --download utility_mapping full /usr/local/humann2/utils
+
 # Test the installation
 RUN humann2_test --run-functional-tests-tools
 
