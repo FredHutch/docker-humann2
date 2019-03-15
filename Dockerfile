@@ -1,5 +1,5 @@
 # Use the biobakery base image
-FROM quay.io/biocontainers/humann2:0.11.1--py27_1
+FROM quay.io/biocontainers/humann2:0.11.2--py27_1
 
 # Install some prerequisites
 # Add the bucket command wrapper, used to run code via sciluigi
